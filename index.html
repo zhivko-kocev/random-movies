@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Upcoming Movies</title>
+<title>Movie Explorer</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -16,15 +16,22 @@
   header {
     padding: 1rem;
     text-align: center;
-    font-size: 1.4rem;
+    font-size: 1.6rem;
     background: #111;
+  }
+
+  section {
+    padding: 1rem;
+  }
+
+  h2 {
+    margin-bottom: 0.5rem;
   }
 
   .movies {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 1rem;
-    padding: 1rem;
   }
 
   .movie {
@@ -47,6 +54,11 @@
   .rating {
     color: #f5c518;
     font-size: 0.8rem;
+  }
+
+  .genre-label {
+    font-size: 0.75rem;
+    opacity: 0.7;
   }
 
   .modal {
@@ -77,8 +89,22 @@
 
 <body>
 
-<header>🎬 Upcoming Movies</header>
-<div class="movies" id="movies"></div>
+<header>🎬 Movie Explorer</header>
+
+<section>
+  <h2>🎲 Random Movie by Genre</h2>
+  <div class="movies" id="random-genres"></div>
+</section>
+
+<section>
+  <h2>🔥 Popular Movies</h2>
+  <div class="movies" id="popular"></div>
+</section>
+
+<section>
+  <h2>⏳ Upcoming Movies</h2>
+  <div class="movies" id="upcoming"></div>
+</section>
 
 <div class="modal" id="modal">
   <div class="modal-content">
@@ -92,37 +118,28 @@
   const IMG = "https://image.tmdb.org/t/p/w500";
   const TMDB_TOKEN = "__TMDB_TOKEN__";
 
-
-  const url = "https://api.themoviedb.org/3/movie/upcoming?language=en-US&page=1";
-  const options = {
-    method: "GET",
-    headers: {
-      accept: "application/json",
-      Authorization: `Bearer ${TMDB_TOKEN}`
-    }
+  const headers = {
+    accept: "application/json",
+    Authorization: `Bearer ${TMDB_TOKEN}`
   };
 
-  const moviesEl = document.getElementById("movies");
   const modal = document.getElementById("modal");
   const modalTitle = document.getElementById("modalTitle");
   const modalOverview = document.getElementById("modalOverview");
 
-  fetch(url, options)
-    .then(res => res.json())
-    .then(data => {
-      data.results.forEach(movie => {
-        const el = document.createElement("div");
-        el.className = "movie";
-        el.innerHTML = `
-          <img loading="lazy" src="${IMG + movie.poster_path}">
-          <div class="title">${movie.title}</div>
-          <div class="rating">⭐ ${movie.vote_average}</div>
-        `;
-        el.onclick = () => openModal(movie);
-        moviesEl.appendChild(el);
-      });
-    })
-    .catch(err => console.error(err));
+  function fetchJSON(url) {
+    return fetch(url, { headers }).then(r => r.json());
+  }
+
+  function renderMovie(el, movie, label = "") {
+    el.innerHTML = `
+      <img loading="lazy" src="${IMG + movie.poster_path}">
+      <div class="title">${movie.title}</div>
+      <div class="rating">⭐ ${movie.vote_average}</div>
+      ${label ? `<div class="genre-label">${label}</div>` : ""}
+    `;
+    el.onclick = () => openModal(movie);
+  }
 
   function openModal(movie) {
     modalTitle.textContent = movie.title;
@@ -133,6 +150,41 @@
   function closeModal() {
     modal.style.display = "none";
   }
+
+  function renderList(containerId, movies, limit = 12) {
+    const container = document.getElementById(containerId);
+    movies.slice(0, limit).forEach(movie => {
+      const el = document.createElement("div");
+      el.className = "movie";
+      renderMovie(el, movie);
+      container.appendChild(el);
+    });
+  }
+
+  fetchJSON("https://api.themoviedb.org/3/movie/popular")
+    .then(d => renderList("popular", d.results));
+
+  fetchJSON("https://api.themoviedb.org/3/movie/upcoming")
+    .then(d => renderList("upcoming", d.results));
+
+  fetchJSON("https://api.themoviedb.org/3/genre/movie/list")
+    .then(d => {
+      const container = document.getElementById("random-genres");
+
+      d.genres.forEach(genre => {
+        fetchJSON(
+          `https://api.themoviedb.org/3/discover/movie?with_genres=${genre.id}&sort_by=popularity.desc`
+        ).then(res => {
+          if (!res.results.length) return;
+
+          const movie = res.results[Math.floor(Math.random() * res.results.length)];
+          const el = document.createElement("div");
+          el.className = "movie";
+          renderMovie(el, movie, genre.name);
+          container.appendChild(el);
+        });
+      });
+    });
 </script>
 
 </body>
