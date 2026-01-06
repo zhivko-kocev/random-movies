@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Upcoming Movies</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+  body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    background: #0b0b0b;
+    color: #fff;
+  }
+
+  header {
+    padding: 1rem;
+    text-align: center;
+    font-size: 1.4rem;
+    background: #111;
+  }
+
+  .movies {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .movie {
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+
+  .movie:hover { transform: scale(1.05); }
+
+  img {
+    width: 100%;
+    border-radius: 10px;
+  }
+
+  .title {
+    font-size: 0.9rem;
+    margin-top: 0.3rem;
+  }
+
+  .rating {
+    color: #f5c518;
+    font-size: 0.8rem;
+  }
+
+  .modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .modal-content {
+    background: #111;
+    max-width: 600px;
+    width: 100%;
+    padding: 1rem;
+    border-radius: 12px;
+  }
+
+  .close {
+    text-align: right;
+    cursor: pointer;
+    font-size: 1.2rem;
+  }
+</style>
+</head>
+
+<body>
+
+<header>🎬 Upcoming Movies</header>
+<div class="movies" id="movies"></div>
+
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <div class="close" onclick="closeModal()">✖</div>
+    <h2 id="modalTitle"></h2>
+    <p id="modalOverview"></p>
+  </div>
+</div>
+
+<script>
+  const IMG = "https://image.tmdb.org/t/p/w500";
+  const TMDB_TOKEN = "__TMDB_TOKEN__";
+
+
+  const url = "https://api.themoviedb.org/3/movie/upcoming?language=en-US&page=1";
+  const options = {
+    method: "GET",
+    headers: {
+      accept: "application/json",
+      Authorization: `Bearer ${TMDB_TOKEN}`
+    }
+  };
+
+  const moviesEl = document.getElementById("movies");
+  const modal = document.getElementById("modal");
+  const modalTitle = document.getElementById("modalTitle");
+  const modalOverview = document.getElementById("modalOverview");
+
+  fetch(url, options)
+    .then(res => res.json())
+    .then(data => {
+      data.results.forEach(movie => {
+        const el = document.createElement("div");
+        el.className = "movie";
+        el.innerHTML = `
+          <img loading="lazy" src="${IMG + movie.poster_path}">
+          <div class="title">${movie.title}</div>
+          <div class="rating">⭐ ${movie.vote_average}</div>
+        `;
+        el.onclick = () => openModal(movie);
+        moviesEl.appendChild(el);
+      });
+    })
+    .catch(err => console.error(err));
+
+  function openModal(movie) {
+    modalTitle.textContent = movie.title;
+    modalOverview.textContent = movie.overview || "No description available.";
+    modal.style.display = "flex";
+  }
+
+  function closeModal() {
+    modal.style.display = "none";
+  }
+</script>
+
+</body>
+</html>
