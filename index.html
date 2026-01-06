@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="mk">
 <head>
 <meta charset="UTF-8">
-<title>Movie Explorer</title>
+<title>Рандомко</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -15,9 +15,24 @@
 
   header {
     padding: 1rem;
-    text-align: center;
-    font-size: 1.6rem;
     background: #111;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .brand {
+    font-size: 1.4rem;
+    font-weight: bold;
+  }
+
+  button {
+    background: #222;
+    border: none;
+    color: #fff;
+    padding: 0.4rem 0.7rem;
+    cursor: pointer;
+    border-radius: 6px;
   }
 
   section {
@@ -89,20 +104,23 @@
 
 <body>
 
-<header>🎬 Movie Explorer</header>
+<header>
+  <div class="brand" id="brand"></div>
+  <button onclick="toggleLang()">MK / EN</button>
+</header>
 
 <section>
-  <h2>🎲 Random Movie by Genre</h2>
+  <h2 id="randomTitle"></h2>
   <div class="movies" id="random-genres"></div>
 </section>
 
 <section>
-  <h2>🔥 Popular Movies</h2>
+  <h2 id="popularTitle"></h2>
   <div class="movies" id="popular"></div>
 </section>
 
 <section>
-  <h2>⏳ Upcoming Movies</h2>
+  <h2 id="upcomingTitle"></h2>
   <div class="movies" id="upcoming"></div>
 </section>
 
@@ -122,6 +140,38 @@
     accept: "application/json",
     Authorization: `Bearer ${TMDB_TOKEN}`
   };
+
+  let lang = "mk";
+
+  const i18n = {
+    mk: {
+      brand: "Рандомко – филмски хаос со ред",
+      random: "Рандом филм за секоа можна категорија",
+      popular: "Моментално популарни филмови",
+      upcoming: "Филмови шо треба да излезат или се пресно испаднати",
+      noDesc: "Нема опис, Рандомко одмара"
+    },
+    en: {
+      brand: "Randomko – movie chaos done right",
+      random: "Random movie from every genre",
+      popular: "Popular movies right now",
+      upcoming: "Upcoming & freshly released movies",
+      noDesc: "No description available."
+    }
+  };
+
+  function applyLang() {
+    document.documentElement.lang = lang;
+    brand.textContent = i18n[lang].brand;
+    randomTitle.textContent = i18n[lang].random;
+    popularTitle.textContent = i18n[lang].popular;
+    upcomingTitle.textContent = i18n[lang].upcoming;
+  }
+
+  function toggleLang() {
+    lang = lang === "mk" ? "en" : "mk";
+    applyLang();
+  }
 
   const modal = document.getElementById("modal");
   const modalTitle = document.getElementById("modalTitle");
@@ -143,7 +193,7 @@
 
   function openModal(movie) {
     modalTitle.textContent = movie.title;
-    modalOverview.textContent = movie.overview || "No description available.";
+    modalOverview.textContent = movie.overview || i18n[lang].noDesc;
     modal.style.display = "flex";
   }
 
@@ -151,15 +201,17 @@
     modal.style.display = "none";
   }
 
-  function renderList(containerId, movies, limit = 12) {
-    const container = document.getElementById(containerId);
-    movies.slice(0, limit).forEach(movie => {
+  function renderList(id, movies, limit = 12) {
+    const c = document.getElementById(id);
+    movies.slice(0, limit).forEach(m => {
       const el = document.createElement("div");
       el.className = "movie";
-      renderMovie(el, movie);
-      container.appendChild(el);
+      renderMovie(el, m);
+      c.appendChild(el);
     });
   }
+
+  applyLang();
 
   fetchJSON("https://api.themoviedb.org/3/movie/popular")
     .then(d => renderList("popular", d.results));
@@ -169,19 +221,17 @@
 
   fetchJSON("https://api.themoviedb.org/3/genre/movie/list")
     .then(d => {
-      const container = document.getElementById("random-genres");
-
-      d.genres.forEach(genre => {
+      const c = document.getElementById("random-genres");
+      d.genres.forEach(g => {
         fetchJSON(
-          `https://api.themoviedb.org/3/discover/movie?with_genres=${genre.id}&sort_by=popularity.desc`
-        ).then(res => {
-          if (!res.results.length) return;
-
-          const movie = res.results[Math.floor(Math.random() * res.results.length)];
+          `https://api.themoviedb.org/3/discover/movie?with_genres=${g.id}&sort_by=popularity.desc`
+        ).then(r => {
+          if (!r.results.length) return;
+          const m = r.results[Math.floor(Math.random() * r.results.length)];
           const el = document.createElement("div");
           el.className = "movie";
-          renderMovie(el, movie, genre.name);
-          container.appendChild(el);
+          renderMovie(el, m, g.name);
+          c.appendChild(el);
         });
       });
     });
